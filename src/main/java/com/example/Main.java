@@ -1,8 +1,5 @@
 package com.example;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 
@@ -13,12 +10,15 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Priority;
+import javafx.geometry.Pos;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
     private Label statusLabel;
     private TextField serverAddressField;
+    private TextField bindDNAddressField;
     private TextField passwordField;
 
     @Override
@@ -26,38 +26,54 @@ public class Main extends Application {
         serverAddressField = new TextField();
         serverAddressField.setPromptText("LDAP Server Address");
 
+        bindDNAddressField = new TextField();
+        bindDNAddressField.setPromptText("LDAP bindDN");
+
         passwordField = new TextField();
         passwordField.setPromptText("Password");
 
         Button connectButton = new Button("Connect");
         connectButton.setOnAction(e -> {
             String serverAddress = serverAddressField.getText();
+            String bindDn = bindDNAddressField.getText();
             // NEED TO SET PASSWORD STYLING HERE
             String password = passwordField.getText();
-            connectToLDAPServer(serverAddress, password);
+            connectToLDAPServer(serverAddress, bindDn, password);
         });
 
-        VBox vbox = new VBox(10);
-        vbox.getChildren().addAll(serverAddressField, passwordField, connectButton);
-
-        statusLabel = new Label("Connecting to LDAP server...");
+        statusLabel = new Label("\n To connect to your ldap server. Please provide the following: - \n Server Address \n bindDN \n password");
         statusLabel.setWrapText(true);
 
-        StackPane root = new StackPane();
-        root.getChildren().addAll(vbox, statusLabel);
+        VBox inputBox = new VBox(20);
+        inputBox.setAlignment(Pos.TOP_CENTER);
+        inputBox.getChildren().addAll(serverAddressField, bindDNAddressField, passwordField, connectButton);
 
-        Scene scene = new Scene(root, 300, 250);
+        VBox mainBox = new VBox(10);
+        mainBox.setAlignment(Pos.TOP_CENTER);
+        mainBox.getChildren().addAll(inputBox, createSpacer(), statusLabel);
+
+        StackPane root = new StackPane();
+        root.getChildren().addAll(mainBox);
+
+        Scene scene = new Scene(root, 500, 350);
         primaryStage.setScene(scene);
         primaryStage.setTitle("LDAP Connection Status");
         primaryStage.show();
     }
 
-    private void connectToLDAPServer(String serverAddress, String password){
+    private Label createSpacer() {
+        Label spacer = new Label();
+        spacer.setMinHeight(10);
+        return spacer;
+    }
+
+    private void connectToLDAPServer(String serverAddress, String bindDn, String password){
         try {
-            LDAPConnection ldapConnection = new LDAPConnection(serverAddress, 389, "cn=admin,dc=example,dc=com", password);
-            //LOOK AT POSSIBLY JUST USING ORIGINAL SCREEN INSTEAD?
-            ((Stage) serverAddressField.getScene().getWindow()).close();
-            showSearchScreen();
+            //cn=admin,dc=example,dc=com
+            LDAPConnection ldapConnection = new LDAPConnection(serverAddress, 389, bindDn, password);
+            Stage primaryStage = (Stage) serverAddressField.getScene().getWindow();
+            primaryStage.close();
+            showSearchScreen(primaryStage);
             ldapConnection.close();
         } catch(LDAPException e){
             statusLabel.setText("Failed to connect to LDAP Server " + e.getMessage());
@@ -66,9 +82,7 @@ public class Main extends Application {
     }
 
     // MOVE FUNCTION
-    private void showSearchScreen() {
-        Stage searchStage = new Stage();
-
+    private void showSearchScreen(Stage primaryStatge) {
         TextField searchBar = new TextField();
         searchBar.setPromptText("Search");
         Button searchButton = new Button("Search");
@@ -77,9 +91,9 @@ public class Main extends Application {
         vbox.getChildren().addAll(searchBar, searchButton);
 
         Scene searchScene = new Scene(vbox, 300, 250);
-        searchStage.setScene(searchScene);
-        searchStage.setTitle("LDAP Search");
-        searchStage.show();
+        primaryStatge.setScene(searchScene);
+        primaryStatge.setTitle("LDAP Search");
+        primaryStatge.show();
     }
 
     public static void main(String[] args) {
