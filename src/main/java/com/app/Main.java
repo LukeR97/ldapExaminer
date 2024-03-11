@@ -1,4 +1,4 @@
-package com.example;
+package com.app;
 
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
@@ -10,7 +10,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.layout.Priority;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
 
@@ -38,7 +37,12 @@ public class Main extends Application {
             String bindDn = bindDNAddressField.getText();
             // NEED TO SET PASSWORD STYLING HERE
             String password = passwordField.getText();
-            connectToLDAPServer(serverAddress, bindDn, password);
+            try{
+                LDAPConnection ldapConnection = Ldap.connectToLDAPServer(serverAddress, 389, bindDn, password);
+                getSearchScreen(ldapConnection);
+            } catch (LDAPException er){
+                er.printStackTrace();
+            }
         });
 
         statusLabel = new Label("\n To connect to your ldap server. Please provide the following: - \n Server Address \n bindDN \n password");
@@ -67,33 +71,50 @@ public class Main extends Application {
         return spacer;
     }
 
-    private void connectToLDAPServer(String serverAddress, String bindDn, String password){
-        try {
-            //cn=admin,dc=example,dc=com
-            LDAPConnection ldapConnection = new LDAPConnection(serverAddress, 389, bindDn, password);
-            Stage primaryStage = (Stage) serverAddressField.getScene().getWindow();
-            primaryStage.close();
-            showSearchScreen(primaryStage);
-            ldapConnection.close();
-        } catch(LDAPException e){
-            statusLabel.setText("Failed to connect to LDAP Server " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
     // MOVE FUNCTION
-    private void showSearchScreen(Stage primaryStatge) {
+    private void showSearchScreen(Stage primaryStatge, LDAPConnection ldapConnection) {
         TextField searchBar = new TextField();
         searchBar.setPromptText("Search");
         Button searchButton = new Button("Search");
+        VBox resultBox = new VBox(10);
+
+        searchButton.setOnAction(e -> {
+            String username = searchBar.getText();
+            com.unboundid.ldap.sdk.SearchResult searchResult = Ldap.searchLDAP(username, ldapConnection);
+            com.unboundid.ldap.sdk.SearchResultEntry entry = searchResult.getSearchEntries().get(0);
+            System.out.println(searchResult.getSearchEntries().get(0));
+            resultBox.getChildren().clear();
+            //Come up with better way to pass in all attribs and then format out in function
+            getAttributes(entry, resultBox, "cn");
+            getAttributes(entry, resultBox, "uid");
+            getAttributes(entry, resultBox, "memberOf");
+
+        });
 
         VBox vbox = new VBox(10);
-        vbox.getChildren().addAll(searchBar, searchButton);
+        vbox.getChildren().addAll(searchBar, searchButton, resultBox);
 
         Scene searchScene = new Scene(vbox, 300, 250);
         primaryStatge.setScene(searchScene);
         primaryStatge.setTitle("LDAP Search");
         primaryStatge.show();
+    }
+
+    private void getSearchScreen(LDAPConnection ldapConnection){
+        Stage primaryStage = (Stage) serverAddressField.getScene().getWindow();
+        primaryStage.close();
+        showSearchScreen(primaryStage, ldapConnection);
+    }
+
+    private void getAttributes(com.unboundid.ldap.sdk.SearchResultEntry entry, VBox resultBox, String attribute){
+        Label label = new Label(attribute + ": ");
+        String value = entry.getAttributeValue(attribute);
+        if(value != null && !value.isEmpty()){
+            label.setText(label.getText() + value);
+        } else {
+            label.setText(label.getText() + "N/A");
+        }
+        resultBox.getChildren().add(label);
     }
 
     public static void main(String[] args) {
