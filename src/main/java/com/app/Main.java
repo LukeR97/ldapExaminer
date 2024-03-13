@@ -1,7 +1,12 @@
 package com.app;
 
+import java.util.Collection;
+import java.util.List;
+
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -76,6 +81,7 @@ public class Main extends Application {
         TextField searchBar = new TextField();
         searchBar.setPromptText("Search");
         Button searchButton = new Button("Search");
+        Button analyzeButton = new Button("Analyze");
         VBox resultBox = new VBox(10);
 
         searchButton.setOnAction(e -> {
@@ -84,11 +90,12 @@ public class Main extends Application {
             com.unboundid.ldap.sdk.SearchResultEntry entry = searchResult.getSearchEntries().get(0);
             System.out.println(searchResult.getSearchEntries().get(0));
             resultBox.getChildren().clear();
-            //Come up with better way to pass in all attribs and then format out in function
-            getAttributes(entry, resultBox, "cn");
-            getAttributes(entry, resultBox, "uid");
-            getAttributes(entry, resultBox, "memberOf");
-
+            getAttributes(entry, resultBox);
+            resultBox.getChildren().add(createSpacer());
+            analyzeButton.setOnAction(event -> {
+                // ADD LDAP SEARCH HERE
+            });
+            resultBox.getChildren().add(analyzeButton);
         });
 
         VBox vbox = new VBox(10);
@@ -106,15 +113,18 @@ public class Main extends Application {
         showSearchScreen(primaryStage, ldapConnection);
     }
 
-    private void getAttributes(com.unboundid.ldap.sdk.SearchResultEntry entry, VBox resultBox, String attribute){
-        Label label = new Label(attribute + ": ");
-        String value = entry.getAttributeValue(attribute);
-        if(value != null && !value.isEmpty()){
-            label.setText(label.getText() + value);
-        } else {
-            label.setText(label.getText() + "N/A");
+    private void getAttributes(com.unboundid.ldap.sdk.SearchResultEntry entry, VBox resultBox){
+        Collection<com.unboundid.ldap.sdk.Attribute> attributes = entry.getAttributes();
+        for (com.unboundid.ldap.sdk.Attribute attribute : attributes){
+            Label label = new Label(attribute.getName() + ": ");
+            String value = attribute.getValue();
+            if(value != null && !value.isEmpty()){
+                label.setText(label.getText() + value);
+            } else {
+                label.setText(label.getText() + "N/A");
+            }
+            resultBox.getChildren().add(label);
         }
-        resultBox.getChildren().add(label);
     }
 
     public static void main(String[] args) {
