@@ -3,6 +3,7 @@ package com.app;
 import java.util.Collection;
 import java.util.List;
 
+import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.SearchResult;
@@ -92,16 +93,19 @@ public class Main extends Application {
             resultBox.getChildren().clear();
             getAttributes(entry, resultBox);
             resultBox.getChildren().add(createSpacer());
-            analyzeButton.setOnAction(event -> {
-                // ADD LDAP SEARCH HERE
-            });
             resultBox.getChildren().add(analyzeButton);
+            
+            analyzeButton.setOnAction(event -> {
+                List<Attribute> analyzeResults = Ldap.analyzeLDAP(entry, ldapConnection);
+                // ADD LDAP SEARCH HERE
+                System.out.println(analyzeResults);
+            });
         });
 
         VBox vbox = new VBox(10);
         vbox.getChildren().addAll(searchBar, searchButton, resultBox);
 
-        Scene searchScene = new Scene(vbox, 300, 250);
+        Scene searchScene = new Scene(vbox, 600, 500);
         primaryStatge.setScene(searchScene);
         primaryStatge.setTitle("LDAP Search");
         primaryStatge.show();
