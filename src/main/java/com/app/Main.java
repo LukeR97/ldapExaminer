@@ -97,7 +97,11 @@ public class Main extends Application {
             
             analyzeButton.setOnAction(event -> {
                 List<Attribute> analyzeResults = Ldap.analyzeLDAP(entry, ldapConnection);
-                // ADD LDAP SEARCH HERE
+                resultBox.getChildren().removeIf(node -> node instanceof Label);
+                for(Attribute attribute : analyzeResults){
+                    Label resultLabel = new Label(attribute.getName() + ": " + attribute.getValue());
+                    resultBox.getChildren().add(resultLabel);
+                }
                 System.out.println(analyzeResults);
             });
         });
