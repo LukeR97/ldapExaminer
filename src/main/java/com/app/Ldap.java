@@ -33,21 +33,35 @@ public class Ldap {
 
     public static List<Attribute> analyzeLDAP(com.unboundid.ldap.sdk.SearchResultEntry attribs, LDAPConnection ldapConnection){
         List<Attribute> results = new ArrayList<>();
-        String uidNum = attribs.getAttributeValue("uidNumber");
+        Integer uidNum = Integer.valueOf(attribs.getAttributeValue("uidNumber"));
+        String loginShell = attribs.getAttributeValue("loginShell");
+        if(loginShell.matches("/bin/bash")){
+            Attribute shell = new Attribute("Login Shell", "OK");
+            results.add(shell);
+        } else {
+            Attribute shell = new Attribute("Login Shell", loginShell);
+            results.add(shell);
+        }
+        List<Attribute> results1 = checkUidNumber(uidNum, ldapConnection);
+        results.addAll(results1);
+        return results;
+    }
+
+    //ANALYSIS FUNCTIONS
+    private static List<Attribute> checkUidNumber(Integer uidNumber, LDAPConnection ldapConnection){
+        List<Attribute> uidNumResults = new ArrayList<>();
         try{
-            com.unboundid.ldap.sdk.SearchResult searchResult = ldapConnection.search("ou=people,dc=example,dc=com", com.unboundid.ldap.sdk.SearchScope.SUB, "(uidNumber=" + uidNum + ")", "uid");
-            //System.out.println(searchResult.getSearchEntries().get(0));
+            com.unboundid.ldap.sdk.SearchResult searchResult = ldapConnection.search("ou=people,dc=example,dc=com", com.unboundid.ldap.sdk.SearchScope.SUB, "(uidNumber=" + uidNumber + ")", "uid");
             if(searchResult.getEntryCount() > 1){
-                //results.add(searchResult.getSearchEntries().get(1).toString());
                 for (SearchResultEntry entry: searchResult.getSearchEntries()){
-                    results.add(entry.getAttribute("uid"));
+                    uidNumResults.add(entry.getAttribute("uid"));
                 }
-                return results;
+                return uidNumResults;
             }
         } catch (LDAPException e){
             e.printStackTrace();
         }
-        return null;
+        uidNumResults.add(new Attribute("Duplicate UID's", "None"));
+        return uidNumResults;
     }
-
 }
