@@ -7,6 +7,8 @@ import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.SearchResultEntry;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime; 
 
 public class Ldap {
     
@@ -31,17 +33,18 @@ public class Ldap {
         return null;
     }
 
+    //NOTE
+    // NEED TO MAKE THESE WORK REGARDLESS OF IF ATTRIBUTE EXISTS!!
     public static List<Attribute> analyzeLDAP(com.unboundid.ldap.sdk.SearchResultEntry attribs, LDAPConnection ldapConnection){
         List<Attribute> results = new ArrayList<>();
         Integer uidNum = Integer.valueOf(attribs.getAttributeValue("uidNumber"));
         String loginShell = attribs.getAttributeValue("loginShell");
-        if(loginShell.matches("/bin/bash")){
-            Attribute shell = new Attribute("Login Shell", "OK");
-            results.add(shell);
-        } else {
-            Attribute shell = new Attribute("Login Shell", loginShell);
-            results.add(shell);
-        }
+        String uidName = attribs.getAttributeValue("uid");
+        String homeDir = attribs.getAttributeValue("homeDirectory");
+        String expiryDate = attribs.getAttributeValue("passwordExpirationDate");
+        results.add(expiredPass(expiryDate));
+        results.add(loginShell(loginShell));
+        results.add(homeDirectory(uidName, homeDir));
         List<Attribute> results1 = checkUidNumber(uidNum, ldapConnection);
         results.addAll(results1);
         return results;
@@ -63,5 +66,37 @@ public class Ldap {
         }
         uidNumResults.add(new Attribute("Duplicate UID's", "None"));
         return uidNumResults;
+    }
+
+    private static Attribute loginShell(String shell){
+        if(shell.matches("/bin/bash")){
+            return new Attribute("Login Shell", "OK");
+        } else {
+            return new Attribute("Login Shell", shell);
+        }
+    }
+
+    private static Attribute homeDirectory(String uidName, String homeDirectory){
+        if(homeDirectory.matches("/home/"+uidName)){
+            return new Attribute("Home Directory", "OK");
+        } else {
+            return new Attribute("Home Directory", homeDirectory);
+        }
+    }
+
+    // Update this to send a warning if close to expired
+    private static Attribute expiredPass (String expiryDate){
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        expiryDate = expiryDate.split("\\.")[0];
+        Long expiryDateNum = Long.valueOf(expiryDate);
+        LocalDateTime currentDate = LocalDateTime.now();
+        String currentDateString = dtf.format(currentDate);
+        Long currentDateInteger = Long.valueOf(currentDateString);
+
+        if(currentDateInteger > expiryDateNum){
+            return new Attribute("Password Expiry", "Expired Password");
+        } else {
+            return new Attribute("Password Expiry Date", "Password Not Expired");
+        }
     }
 }
