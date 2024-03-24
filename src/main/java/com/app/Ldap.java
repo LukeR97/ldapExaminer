@@ -37,17 +37,30 @@ public class Ldap {
     // NEED TO MAKE THESE WORK REGARDLESS OF IF ATTRIBUTE EXISTS!!
     public static List<Attribute> analyzeLDAP(com.unboundid.ldap.sdk.SearchResultEntry attribs, LDAPConnection ldapConnection){
         List<Attribute> results = new ArrayList<>();
-        Integer uidNum = Integer.valueOf(attribs.getAttributeValue("uidNumber"));
-        String loginShell = attribs.getAttributeValue("loginShell");
-        String uidName = attribs.getAttributeValue("uid");
-        String homeDir = attribs.getAttributeValue("homeDirectory");
-        String expiryDate = attribs.getAttributeValue("passwordExpirationDate");
+        Integer uidNum = getIntegerValue(attribs.getAttributeValue("uidNumber"));
+        String loginShell = getStringValue(attribs.getAttributeValue("loginShell"));
+        String uidName = getStringValue(attribs.getAttributeValue("uid"));
+        String homeDir = getStringValue(attribs.getAttributeValue("homeDirectory"));
+        String expiryDate = getStringValue(attribs.getAttributeValue("passwordExpirationDate"));
         results.add(expiredPass(expiryDate));
         results.add(loginShell(loginShell));
         results.add(homeDirectory(uidName, homeDir));
         List<Attribute> results1 = checkUidNumber(uidNum, ldapConnection);
         results.addAll(results1);
         return results;
+    }
+
+    //Functions for if a given attribute doesn't exist
+    private static Integer getIntegerValue(String value) {
+        try {
+            return(value != null) ? Integer.valueOf(value) : null;
+        } catch(NumberFormatException e){
+            return null;
+        }
+    }
+
+    private static String getStringValue(String value) {
+        return(value != null) ? value : "";
     }
 
     //ANALYSIS FUNCTIONS
@@ -90,6 +103,9 @@ public class Ldap {
          * They Need to be in the same format to compare
          * We also get the current date plus 10 days to give a warning if the password will expire soon
          */
+        if(expiryDate.isEmpty()){
+            return new Attribute("Password Expiry Date", "No expiry date set");
+        }
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         expiryDate = expiryDate.split("\\.")[0];
         Long expiryDateNum = Long.valueOf(expiryDate);
