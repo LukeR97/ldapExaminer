@@ -6,8 +6,6 @@ import java.util.List;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.SearchResult;
-import com.unboundid.ldap.sdk.SearchResultEntry;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
