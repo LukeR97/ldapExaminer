@@ -33,15 +33,15 @@ public class Ldap {
         return null;
     }
 
-    //NOTE
-    // NEED TO MAKE THESE WORK REGARDLESS OF IF ATTRIBUTE EXISTS!!
     public static List<Attribute> analyzeLDAP(com.unboundid.ldap.sdk.SearchResultEntry attribs, LDAPConnection ldapConnection){
         List<Attribute> results = new ArrayList<>();
+        //Attributes ---------------------------------------
         Integer uidNum = getIntegerValue(attribs.getAttributeValue("uidNumber"));
         String loginShell = getStringValue(attribs.getAttributeValue("loginShell"));
         String uidName = getStringValue(attribs.getAttributeValue("uid"));
         String homeDir = getStringValue(attribs.getAttributeValue("homeDirectory"));
         String expiryDate = getStringValue(attribs.getAttributeValue("passwordExpirationDate"));
+        //---------------------------------------------------
         results.add(expiredPass(expiryDate));
         results.add(loginShell(loginShell));
         results.add(homeDirectory(uidName, homeDir));
@@ -69,6 +69,7 @@ public class Ldap {
         try{
             com.unboundid.ldap.sdk.SearchResult searchResult = ldapConnection.search("ou=people,dc=example,dc=com", com.unboundid.ldap.sdk.SearchScope.SUB, "(uidNumber=" + uidNumber + ")", "uid");
             if(searchResult.getEntryCount() > 1){
+                uidNumResults.add(new Attribute("Duplicate uid Numbers found!", "See Below"));
                 for (SearchResultEntry entry: searchResult.getSearchEntries()){
                     uidNumResults.add(entry.getAttribute("uid"));
                 }
@@ -93,7 +94,7 @@ public class Ldap {
         if(homeDirectory.matches("/home/"+uidName)){
             return new Attribute("Home Directory", "OK");
         } else {
-            return new Attribute("Home Directory", homeDirectory);
+            return new Attribute("Home Directory doesn't match UID: ", homeDirectory);
         }
     }
 
