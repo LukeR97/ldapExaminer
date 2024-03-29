@@ -98,28 +98,22 @@ public class Ldap {
         }
     }
 
-    private static Attribute expiredPass (String expiryDate){
-        /* Calculate if password is expired
-         * Logic here is that we get the current date and the expiry date from LDAP
-         * They Need to be in the same format to compare
-         * We also get the current date plus 10 days to give a warning if the password will expire soon
-         */
-        if(expiryDate.isEmpty()){
+    private static Attribute expiredPass(String expiryDate) {
+    //     /* Calculate if password is expired
+    //      * Logic here is that we get the current date and the expiry date from LDAP
+    //      * They Need to be in the same format to compare
+    //      * We also get the current date plus 10 days to give a warning if the password will expire soon
+    //      */
+        if (expiryDate.isEmpty()) {
             return new Attribute("Password Expiry Date", "No expiry date set");
         }
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        expiryDate = expiryDate.split("\\.")[0];
-        Long expiryDateNum = Long.valueOf(expiryDate);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         LocalDateTime currentDate = LocalDateTime.now();
+        LocalDateTime expiryDateTime = LocalDateTime.parse(expiryDate.split("\\.")[0], formatter);
         LocalDateTime tenDaysLater = currentDate.plusDays(10);
-        String currentDateString = dtf.format(currentDate);
-        String tenDaysLaterString = dtf.format(tenDaysLater);
-        Long tenDaysLaterInteger = Long.valueOf(tenDaysLaterString);
-        Long currentDateInteger = Long.valueOf(currentDateString);
-
-        if(currentDateInteger > expiryDateNum){
+        if (currentDate.isAfter(expiryDateTime)) {
             return new Attribute("Password Expiry", "Expired Password");
-        } else if(tenDaysLaterInteger > expiryDateNum) {
+        } else if (tenDaysLater.isAfter(expiryDateTime)) {
             return new Attribute("Password Expiry Date", "Password not expired, but will expire in less than 10 days");
         } else {
             return new Attribute("Password Expiry Date", "Password Not Expired");
