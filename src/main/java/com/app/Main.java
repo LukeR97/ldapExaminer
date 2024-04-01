@@ -1,19 +1,30 @@
 package com.app;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Observable;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
 
@@ -56,6 +67,8 @@ public class Main extends Application {
         inputBox.setAlignment(Pos.TOP_CENTER);
         inputBox.getChildren().addAll(serverAddressField, bindDNAddressField, passwordField, connectButton);
 
+        VBox.setMargin(inputBox, new Insets(20));
+
         VBox mainBox = new VBox(10);
         mainBox.setAlignment(Pos.TOP_CENTER);
         mainBox.getChildren().addAll(inputBox, createSpacer(), statusLabel);
@@ -65,7 +78,7 @@ public class Main extends Application {
 
         Scene scene = new Scene(root, 500, 350);
         primaryStage.setScene(scene);
-        primaryStage.setTitle("LDAP Connection Status");
+        primaryStage.setTitle("LDAP Examiner Connect");
         primaryStage.show();
     }
 
@@ -81,33 +94,50 @@ public class Main extends Application {
         searchBar.setPromptText("Search");
         Button searchButton = new Button("Search");
         Button analyzeButton = new Button("Analyze");
+
+        TableView<Attribute> attributeTable = new TableView<>();
+        attributeTable.setEditable(false);
+
+        TableColumn<Attribute, String> attributeNameCol = new TableColumn<>("Attribute Name");
+        attributeNameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+
+        TableColumn<Attribute, String> attributeValueCol = new TableColumn<>("Value");
+        attributeValueCol.setCellValueFactory(new PropertyValueFactory<>("value"));
+
+        //attributeTable.getColumns().addAll(attributeNameCol, attributeValueCol);
+        attributeTable.getColumns().add(attributeNameCol);
+        attributeTable.getColumns().add(attributeValueCol);
+
         VBox resultBox = new VBox(10);
 
         searchButton.setOnAction(e -> {
             String username = searchBar.getText();
             com.unboundid.ldap.sdk.SearchResult searchResult = Ldap.searchLDAP(username, ldapConnection);
             com.unboundid.ldap.sdk.SearchResultEntry entry = searchResult.getSearchEntries().get(0);
-            System.out.println(searchResult.getSearchEntries().get(0));
-            resultBox.getChildren().clear();
-            getAttributes(entry, resultBox);
-            resultBox.getChildren().add(createSpacer());
-            resultBox.getChildren().add(analyzeButton);
+            //System.out.println(searchResult.getSearchEntries().get(0));
+            ObservableList<Attribute> attributes = FXCollections.observableArrayList(getAttributes(entry));
+            attributeTable.setItems(attributes);
             
             analyzeButton.setOnAction(event -> {
                 List<Attribute> analyzeResults = Ldap.analyzeLDAP(entry, ldapConnection);
-                resultBox.getChildren().removeIf(node -> node instanceof Label);
-                for(Attribute attribute : analyzeResults){
-                    Label resultLabel = new Label(attribute.getName() + ": " + attribute.getValue());
-                    resultBox.getChildren().add(resultLabel);
-                }
-                System.out.println(analyzeResults);
+                attributes.add(new Attribute("-------Analyze Results Below-------", "-------"));
+                attributes.addAll(analyzeResults);
             });
         });
 
-        VBox vbox = new VBox(10);
-        vbox.getChildren().addAll(searchBar, searchButton, resultBox);
+        resultBox.getChildren().addAll(searchBar, searchButton, attributeTable, analyzeButton);
 
-        Scene searchScene = new Scene(vbox, 600, 500);
+        VBox.setMargin(searchBar, new Insets(20));
+        VBox.setMargin(searchButton, new Insets(20));
+        VBox.setMargin(resultBox, new Insets(20));
+
+        ScrollPane scrollPane = new ScrollPane(resultBox);
+        scrollPane.setFitToWidth(true);
+
+        VBox root = new VBox(10);
+        root.getChildren().addAll(scrollPane);
+
+        Scene searchScene = new Scene(root, 600, 500);
         primaryStatge.setScene(searchScene);
         primaryStatge.setTitle("LDAP Search");
         primaryStatge.show();
@@ -119,19 +149,15 @@ public class Main extends Application {
         showSearchScreen(primaryStage, ldapConnection);
     }
 
-    private void getAttributes(com.unboundid.ldap.sdk.SearchResultEntry entry, VBox resultBox){
-        Collection<com.unboundid.ldap.sdk.Attribute> attributes = entry.getAttributes();
-        for (com.unboundid.ldap.sdk.Attribute attribute : attributes){
-            Label label = new Label(attribute.getName() + ": ");
-            String value = attribute.getValue();
-            if(value != null && !value.isEmpty()){
-                label.setText(label.getText() + value);
-            } else {
-                label.setText(label.getText() + "N/A");
-            }
-            resultBox.getChildren().add(label);
-        }
+    private List<Attribute> getAttributes(com.unboundid.ldap.sdk.SearchResultEntry entry) {
+    List<Attribute> attributes = new ArrayList<>();
+    Collection<com.unboundid.ldap.sdk.Attribute> ldapAttributes = entry.getAttributes();
+    for (com.unboundid.ldap.sdk.Attribute ldapAttribute : ldapAttributes) {
+        Attribute attribute = new Attribute(ldapAttribute.getName(), ldapAttribute.getValue() != null ? ldapAttribute.getValue() : "N/A");
+        attributes.add(attribute);
     }
+    return attributes;
+}
 
     public static void main(String[] args) {
         launch(args);
