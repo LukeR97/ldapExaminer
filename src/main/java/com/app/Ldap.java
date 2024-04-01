@@ -62,6 +62,7 @@ public class Ldap {
     private static String getStringValue(String value) {
         return(value != null) ? value : "";
     }
+    //-----------------------------------------------
 
     //ANALYSIS FUNCTIONS
     private static List<Attribute> checkUidNumber(Integer uidNumber, LDAPConnection ldapConnection){
