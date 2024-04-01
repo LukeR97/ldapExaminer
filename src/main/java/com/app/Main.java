@@ -3,8 +3,6 @@ package com.app;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Observable;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.LDAPConnection;
@@ -21,7 +19,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.Border;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.geometry.Insets;
